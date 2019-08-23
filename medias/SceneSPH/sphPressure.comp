@@ -1,0 +1,43 @@
+#version 430
+
+#define PI 3.1415927410
+#define WORK_GROUP_SIZE 64
+#define RADIUS 0.005;
+
+uniform uint nParticles;
+uniform float restDensity = 1000.0f;
+uniform float pressure_factor = 2000.0f;
+uniform float Mass = 0.02;
+uniform float smoothRadius = 4 * RADIUS;
+
+layout(local_size_x = WORK_GROUP_SIZE) in;
+
+
+layout(std430, binding = 0) buffer posIn { vec4 Position[]; };
+layout(std430, binding = 1) buffer velIn { vec4 Velocity[]; };
+layout(std430, binding = 2) buffer forceIn { vec4 Force[]; };
+layout(std430, binding = 3) buffer densIn { float Density[]; };
+layout(std430, binding = 4) buffer presIn { float Pressure[]; };
+
+
+void main() {
+	
+	uint idx = gl_GlobalInvocationID.x;
+	
+	float poly6_factor = Mass * 315.0f / (64.0f * PI * pow(smoothRadius, 9));
+
+	float density = 0;
+	for (uint i = 0; i < nParticles; i++) {
+		if (i == idx) continue;
+
+		vec3 r = vec3(Position[i] - Position[idx]);
+		float dist = length(r);
+		if (dist < smoothRadius) {
+			density += pow(smoothRadius * smoothRadius - dist * dist, 3);
+		}
+	}
+
+	Density[idx] = density * poly6_factor;
+	Pressure[idx] = max(pressure_factor * (Density[idx] - restDensity), 0.0f);
+
+}

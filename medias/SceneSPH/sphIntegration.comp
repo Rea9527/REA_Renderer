@@ -1,0 +1,56 @@
+#version 430
+
+#define WORK_GROUP_SIZE 64
+
+uniform uint nParticles;
+
+uniform float Mass = 0.02;
+uniform float deltaT = 0.0001;
+uniform float damping_factor = 0.3;
+
+layout(local_size_x = WORK_GROUP_SIZE) in;
+
+layout(std430, binding = 0) buffer posIn { vec4 Position[]; };
+layout(std430, binding = 1) buffer velIn { vec4 Velocity[]; };
+layout(std430, binding = 2) buffer forceIn { vec4 Force[]; };
+layout(std430, binding = 3) buffer densIn { float Density[]; };
+layout(std430, binding = 4) buffer presIn { float Pressure[]; };
+
+
+void main() {
+	
+	uint idx = gl_GlobalInvocationID.x;
+
+	vec3 newVel = vec3(Velocity[idx]) + vec3(Force[idx]);
+	vec3 newPos = vec3(Position[idx]) + deltaT * newVel;
+
+	if (newPos.z <= -1) {
+		newPos.z = -1;
+		newVel.z *= -damping_factor;
+	}
+	if (newPos.z >= 1) {
+		newPos.z = 1;
+		newVel.z *= -damping_factor;
+	}
+
+	if (newPos.y <= 0.05) {
+		newPos.y = 0.05;
+		newVel.y *= -damping_factor;
+	}
+	if (newPos.y >= 1) {
+		newPos.y = 1;
+		newVel.y *= -damping_factor;
+	}
+	if (newPos.x <= -1) {
+		newPos.x = -1;
+		newVel.x *= -damping_factor;
+	}
+	if (newPos.x >= 1) {
+		newPos.x = 1;
+		newVel.x *= -damping_factor;
+	}
+
+	Position[idx] = vec4(newPos, 1.0);
+	Velocity[idx] = vec4(newVel, 1.0);
+
+}

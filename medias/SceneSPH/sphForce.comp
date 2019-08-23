@@ -1,0 +1,51 @@
+#version 430
+
+#define PI 3.1415927410
+#define WORK_GROUP_SIZE 64
+#define GRA_FORCE vec3(0.0, -9806.0, 0.0)
+#define RADIUS 0.005;
+
+uniform uint nParticles;
+
+uniform float Mass = 0.02;
+uniform float smoothRadius = 4 * RADIUS;
+uniform float viscosity = 3000.0f;
+
+layout(local_size_x = WORK_GROUP_SIZE) in;
+
+layout(std430, binding = 0) buffer posIn { vec4 Position[]; };
+layout(std430, binding = 1) buffer velIn { vec4 Velocity[]; };
+layout(std430, binding = 2) buffer forceIn { vec4 Force[]; };
+layout(std430, binding = 3) buffer densIn { float Density[]; };
+layout(std430, binding = 4) buffer presIn { float Pressure[]; };
+
+void main() {
+
+	uint idx = gl_GlobalInvocationID.x;
+
+	float spiky_factor = Mass * 45 / (PI * pow(smoothRadius, 6));
+	float visco_factor = viscosity * spiky_factor;
+
+	vec3 presForce = vec3(0.0, 0.0, 0.0), viscoForce = vec3(0.0, 0.0, 0.0);
+	for (uint i = 0; i < nParticles; i++) {
+
+		if (i == idx) continue;
+
+		vec3 r = vec3(Position[idx] - Position[i]);
+		float dist = length(r);
+
+		if (dist < smoothRadius) {
+			presForce += (Pressure[idx] + Pressure[i]) * pow(smoothRadius - dist, 2) * normalize(r) / (2 * Density[idx] * Density[i]);
+			viscoForce += vec3(Velocity[i] - Velocity[idx]) * (smoothRadius - dist) / (Density[idx] * Density[i]);
+		}
+	}
+
+	presForce *= spiky_factor;
+	viscoForce *= visco_factor;
+	// here, we only consider gravitational force as the external force
+	vec3 externForce = GRA_FORCE;
+
+	// the force we computed is actually the acceleration
+	Force[idx] = vec4(presForce + viscoForce + externForce, 1.0f);
+
+}

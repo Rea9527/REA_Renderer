@@ -1,0 +1,6 @@
+{
+    "C_Cpp.intelliSenseEngine": "Default"
+    // "code-runner.executorMap": {
+    //     "cpp": "cd $dir && g++ -std=c++11 -o *.cpp -I E:/TinyProjects/REA_Rendering/dependencies/includes -I E:/TinyProjects/REA_Rendering/dependencies/includes/glm/glm -L /${workspaceRoot}/dependencies/lib/glfw3.lib -L /${workspaceRoot}/dependencies/lib/glew32.lib -L /${workspaceRoot}/dependencies/lib/assimp-vc140-mt.lib"
+    // }
+}
